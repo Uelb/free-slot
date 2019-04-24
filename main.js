@@ -22,11 +22,8 @@ new Event(false, false, startDate4, endDate4); // intervention scheduled
 var fromDate = new Date(2016,6,4,10,00); // July 4th 10:00
 var toDate = new Date(2016,6,10,10,00); // July 10th 10:00
 
-Event.prototype.availabilities(fromDate, toDate, function(availabilities){
-	console.log({availabilities})
-	return availabilities
-});
-
+var availabilities = Event.prototype.availabilities(fromDate, toDate)
+console.log({ availabilities })
 
 
 /*
