@@ -46,12 +46,20 @@ Event.prototype.sorted = function(arr) {
     }, []);
 }
 
-Event.prototype.availabilities = function(fromDate, toDate){
-  // sort slot and merge if overlap
-  var sortedList = Event.prototype.sorted(eventList);
+Event.prototype.isEqual = function(firstDate, secondDate){
+	return firstDate.getTime() === secondDate.getTime();
+}
+
+Event.prototype.flat = function(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? Event.prototype.flat(toFlatten) : toFlatten);
+  }, []);
+}
+
+Event.prototype.availabilities = function(fromDate, toDate, callback){
 
   // open list
-  var openList = sortedList.filter(function(date){ return date.opening; })
+  var openList = eventList.filter(function(date){ return date.opening; })
   var openInterList = openList
     .filter(function(date){ return !date.recurring })
     .filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
@@ -66,7 +74,7 @@ Event.prototype.availabilities = function(fromDate, toDate){
     }, {});
 
   // get intervention
-  var busyList = sortedList.filter(function(date){ return !date.opening; })
+  var busyList = eventList.filter(function(date){ return !date.opening; })
   var busyInterList = busyList
     .filter(function(date){ return !date.recurring })
     .filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
@@ -80,127 +88,126 @@ Event.prototype.availabilities = function(fromDate, toDate){
       return acc;
     }, {});
 
-  // get free slot recurring between 2 dates
-  var freeSlots = Event.prototype.getDatesBetween(fromDate, toDate).reduce(function(acc, openDate) {
-    var daysOpen = Object.keys(recurringOpen);
-    var currentDay = openDate.getDay().toString();
+	var getOpenSlots = function(acc){
+		return new Promise(function(resolve, reject) {
+			var openSlots = acc.reduce(function(acc, openDate) {
+		    var daysOpen = Object.keys(recurringOpen);
+		    var currentDay = openDate.getDay().toString();
 
-    if (daysOpen.includes(currentDay)){
-      var recurr = recurringOpen[currentDay]
+		    if (daysOpen.includes(currentDay)){
+		      var recurr = recurringOpen[currentDay]
 
-      var startDate = new Date(openDate)
-      startDate.setHours(recurr.startDate.getHours())
-      startDate.setMinutes(recurr.startDate.getMinutes())
+		      var startDate = new Date(openDate)
+		      startDate.setHours(recurr.startDate.getHours())
+		      startDate.setMinutes(recurr.startDate.getMinutes())
 
-      var endDate = new Date(openDate)
-      endDate.setHours(recurr.endDate.getHours())
-      endDate.setMinutes(recurr.endDate.getMinutes())
+		      var endDate = new Date(openDate)
+		      endDate.setHours(recurr.endDate.getHours())
+		      endDate.setMinutes(recurr.endDate.getMinutes())
 
-      acc.push({
-        startDate : new Date(startDate),
-        endDate : new Date(endDate)
-      })
-    };
-    return acc;
-  }, []).reduce(function(acc, inter){ // get intervention free slots
+		      acc.push({
+		        startDate : new Date(startDate),
+		        endDate : new Date(endDate)
+		      })
+		    };
+		    return acc;
+		  }, []).reduce(function(acc, inter){ // get intervention free slots
 
-    if(!openInterList.length){
-      acc = acc.concat(inter);
-    }
-    acc = acc.concat(openInterList);
+		    if(!openInterList.length){ acc = acc.concat(inter); }
+		    acc = acc.concat(openInterList);
 
-    return acc;
-  }, []).reduce(function(acc, openDate){ // get busy recurring
+		    return acc;
+		  }, []);
 
-    var daysBusy = Object.keys(recurringBusy);
-    var currentDay = openDate.startDate.getDay().toString();
+			return resolve(Event.prototype.sorted(openSlots));
+		});
+	}
 
-    if (!daysBusy.includes(currentDay)) {
-      return acc.concat(openDate);
-    }
-    else {
-      var recurr = recurringBusy[currentDay]
-      var startDate = new Date(openDate.startDate)
-      startDate.setHours(recurr.startDate.getHours())
-      startDate.setMinutes(recurr.startDate.getMinutes())
+	var mergeBusyRecurringSlots = function(acc){
+		return new Promise(function(resolve, reject) {
+			var busySlots = acc.reduce(function(acc, openDate){ // get busy recurring
 
-      var endDate = new Date(openDate.startDate)
-      endDate.setHours(recurr.endDate.getHours())
-      endDate.setMinutes(recurr.endDate.getMinutes())
+		    var daysBusy = Object.keys(recurringBusy); // return Monday = 1; Tuesday = 2 , etc
+		    var currentDay = openDate.startDate.getDay().toString();
 
-      if(startDate >= openDate.startDate && endDate <= openDate.endDate){
-        var isStartEqual = startDate.getTime() === openDate.startDate.getTime();
-        var isEndEqual = endDate.getTime() === openDate.endDate.getTime();
-        if( isStartEqual && isEndEqual ){
-          acc = acc;
-        }
-        else if (isStartEqual){
-          acc.push({ startDate: endDate, endDate: openDate.endDate })
-        }
-        else if (isEndEqual){
-          acc.push({ startDate: openDate.startDate, endDate: start })
-        }
-        else {
-          var firstSlot = {
-            startDate: openDate.startDate,
-            endDate: startDate,
-          }
-          var secondSlot = {
-            startDate: endDate,
-            endDate: openDate.endDate,
-          }
-          acc.push(firstSlot, secondSlot)
-        }
+		    if (!daysBusy.includes(currentDay)) {
+		      return acc.concat(openDate);
+		    }
+		    else {
+		      var recurr = recurringBusy[currentDay]
+		      var startDate = new Date(openDate.startDate)
+		      startDate.setHours(recurr.startDate.getHours())
+		      startDate.setMinutes(recurr.startDate.getMinutes())
 
-      }
+		      var endDate = new Date(openDate.startDate)
+		      endDate.setHours(recurr.endDate.getHours())
+		      endDate.setMinutes(recurr.endDate.getMinutes())
 
-      return acc;
-    }
+		      if(startDate >= openDate.startDate && endDate <= openDate.endDate){
+		        var isStartEqual = Event.prototype.isEqual(startDate, openDate.startDate);
+		        var isEndEqual = Event.prototype.isEqual(endDate, openDate.endDate);
 
-  }, []).map(function(slot){ // merge with busy between fromDate and toDate
+		        if( isStartEqual && isEndEqual ){ acc = acc; }
+		        else if (isStartEqual){
+		          acc.push({ startDate: endDate, endDate: openDate.endDate })
+		        }
+		        else if (isEndEqual){
+		          acc.push({ startDate: openDate.startDate, endDate: start })
+		        }
+		        else {
+		          var firstSlot = { startDate: openDate.startDate, endDate: startDate }
+		          var secondSlot = { startDate: endDate, endDate: openDate.endDate }
+		          acc.push(firstSlot, secondSlot)
+		        }
 
-    if(!busyInterList.length){
-      return slot;
-    }
-    var newSlots = [];
-    busyInterList.map(function(busySlot){
+		      }
+		      return acc;
+		    }
 
-      if(busySlot.startDate >= slot.startDate && busySlot.endDate <= slot.endDate){
-        var isStartEqual = busySlot.startDate.getTime() === slot.startDate.getTime();
-        var isEndEqual = busySlot.endDate.getTime() === slot.endDate.getTime();
-        if( isStartEqual && isEndEqual ){
-          newSlots = newSlots;
-        }
-        else if (isStartEqual){
-          newSlots.push({ startDate: busySlot.endDate, endDate: slot.endDate })
-        }
-        else if (isEndEqual){
-          newSlots.push({ startDate: slot.startDate, endDate: busySlot.startDate })
-        }
-        else {
-          newSlots.push({
-            startDate: slot.startDate,
-            endDate: busySlot.startDate,
-          }, {
-            startDate: busySlot.endDate,
-            endDate: slot.endDate,
-          })
-        }
-      }
-      else { newSlots.push(slot);}
-    })
+		  }, []);
+			return resolve(busySlots)
+		});
+	}
 
-    return newSlots;
-  })
+	var mergeBusyInterventSlots = function(acc){
+		return new Promise(function(resolve, reject) {
+			var busyInterSlots = acc.map(function(slot){ // merge with busy between fromDate and toDate
 
-  return Event.prototype.flat(freeSlots);
+		    if(!busyInterList.length){ return slot; }
+		    var newSlots = [];
+		    busyInterList.map(function(busySlot){
+
+		      if(busySlot.startDate >= slot.startDate && busySlot.endDate <= slot.endDate){
+		        var isStartEqual = Event.prototype.isEqual(busySlot.startDate, slot.startDate );
+		        var isEndEqual = Event.prototype.isEqual(busySlot.endDate, slot.endDate);
+		        if( isStartEqual && isEndEqual ){ newSlots = newSlots; }
+		        else if (isStartEqual){
+		          newSlots.push({ startDate: busySlot.endDate, endDate: slot.endDate })
+		        }
+		        else if (isEndEqual){
+		          newSlots.push({ startDate: slot.startDate, endDate: busySlot.startDate })
+		        }
+		        else {
+		          newSlots.push({ startDate: slot.startDate, endDate: busySlot.startDate }, { startDate: busySlot.endDate, endDate: slot.endDate })
+		        }
+		      }
+		      else { newSlots.push(slot);}
+		    })
+
+		    return newSlots;
+		  })
+			console.log({ busyInterSlots})
+			return resolve(busyInterSlots);
+		});
+	}
+
+	Promise.resolve(Event.prototype.getDatesBetween(fromDate, toDate))
+		.then(getOpenSlots)
+		.then(mergeBusyRecurringSlots)
+		.then(mergeBusyInterventSlots)
+		.then(freeSlots => Event.prototype.flat(freeSlots))
+		.then(res => callback(res))
+
 };
-
-
-Event.prototype.flat = function(arr) {
-  return arr.reduce(function (flat, toFlatten) {
-    return flat.concat(Array.isArray(toFlatten) ? Event.prototype.flat(toFlatten) : toFlatten);
-  }, []);
-}
 
 module.exports = Event
