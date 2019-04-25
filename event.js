@@ -1,49 +1,49 @@
 var eventList = [];
 
 var Event = function(opening, recurring, startDate, endDate){
-  this.opening = opening;
-  this.recurring = recurring;
-  this.startDate = startDate;
-  this.endDate = endDate;
+	this.opening = opening;
+	this.recurring = recurring;
+	this.startDate = startDate;
+	this.endDate = endDate;
 
-  eventList.push(this);
+	eventList.push(this);
 };
 
 Event.prototype.getDatesBetween = function(startDate, endDate) {
-  var dates = [], currentDate = startDate,
-      addDays = function(days) {
-        var date = new Date(this.valueOf());
-        date.setDate(date.getDate() + days);
-        return date;
-      };
-  while (currentDate <= endDate) {
-    dates.push(currentDate);
-    currentDate = addDays.call(currentDate, 1);
-  }
-  return dates;
+	var dates = [], currentDate = startDate,
+	addDays = function(days) {
+		var date = new Date(this.valueOf());
+		date.setDate(date.getDate() + days);
+		return date;
+	};
+	while (currentDate <= endDate) {
+		dates.push(currentDate);
+		currentDate = addDays.call(currentDate, 1);
+	}
+	return dates;
 };
 
 Event.prototype.isBetween = function(date, from, to) {
-  if((date.endDate.getTime() <= to.getTime()
-    && date.startDate.getTime() >= from.getTime())){
-    return true;
-  }
-  return false;
+	if((date.endDate.getTime() <= to.getTime()
+	&& date.startDate.getTime() >= from.getTime())){
+		return true;
+	}
+	return false;
 };
 
 Event.prototype.sorted = function(arr) {
-    return arr
-      .sort(function (a, b) { return a.startDate - b.startDate || a.endDate - b.endDate; })
-      .reduce(function (r, a) {
-        var last = r[r.length - 1] || [];
-        if (last.startDate <= a.startDate && a.startDate <= last.endDate) {
-            if (last.endDate < a.endDate) {
-                last.endDate = a.endDate;
-            }
-            return r;
-        }
-        return r.concat(a);
-    }, []);
+	return arr
+	.sort(function (a, b) { return a.startDate - b.startDate || a.endDate - b.endDate; })
+	.reduce(function (r, a) {
+		var last = r[r.length - 1] || [];
+		if (last.startDate <= a.startDate && a.startDate <= last.endDate) {
+			if (last.endDate < a.endDate) {
+				last.endDate = a.endDate;
+			}
+			return r;
+		}
+		return r.concat(a);
+	}, []);
 }
 
 Event.prototype.isEqual = function(firstDate, secondDate){
@@ -51,9 +51,9 @@ Event.prototype.isEqual = function(firstDate, secondDate){
 }
 
 Event.prototype.flat = function(arr) {
-  return arr.reduce(function (flat, toFlatten) {
-    return flat.concat(Array.isArray(toFlatten) ? Event.prototype.flat(toFlatten) : toFlatten);
-  }, []);
+	return arr.reduce(function (flat, toFlatten) {
+		return flat.concat(Array.isArray(toFlatten) ? Event.prototype.flat(toFlatten) : toFlatten);
+	}, []);
 }
 
 Event.prototype.getOpenSlots = function(fullSlots, recurringOpen, openInterList){
@@ -164,35 +164,35 @@ Event.prototype.mergeBusyInterventSlots = function(fullSlots, busyInterList){
 
 Event.prototype.availabilities = function(fromDate, toDate){
 
-  // open list
-  var openList = eventList.filter(function(date){ return date.opening; })
-  var openInterList = openList
-    .filter(function(date){ return !date.recurring })
-    .filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
+	// open list
+	var openList = eventList.filter(function(date){ return date.opening; })
+	var openInterList = openList
+	.filter(function(date){ return !date.recurring })
+	.filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
 
-  // get recurring open dates
-  var recurringOpen = openList
-    .filter(function(date){ return date.recurring })
-    .reduce(function(acc, date){
-      var day = date.startDate.getDay() || date.endDate.getDay();
-      if(!acc[day]){acc[day] = date ;}
-      return acc;
-    }, {});
+	// get recurring open dates
+	var recurringOpen = openList
+	.filter(function(date){ return date.recurring })
+	.reduce(function(acc, date){
+		var day = date.startDate.getDay() || date.endDate.getDay();
+		if(!acc[day]){acc[day] = date ;}
+		return acc;
+	}, {});
 
-  // get intervention
-  var busyList = eventList.filter(function(date){ return !date.opening; })
-  var busyInterList = busyList
-    .filter(function(date){ return !date.recurring })
-    .filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
+	// get intervention
+	var busyList = eventList.filter(function(date){ return !date.opening; })
+	var busyInterList = busyList
+	.filter(function(date){ return !date.recurring })
+	.filter(function(date){ return Event.prototype.isBetween(date, fromDate, toDate)})
 
-  // get recurring busy dates
-  var recurringBusy = busyList
-    .filter(function(date){ return date.recurring })
-    .reduce(function(acc, date){
-      var day = date.startDate.getDay() || date.endDate.getDay();
-      if(!acc[day]){acc[day] = date ;}
-      return acc;
-    }, {});
+	// get recurring busy dates
+	var recurringBusy = busyList
+	.filter(function(date){ return date.recurring })
+	.reduce(function(acc, date){
+		var day = date.startDate.getDay() || date.endDate.getDay();
+		if(!acc[day]){acc[day] = date ;}
+		return acc;
+	}, {});
 
 	var fullSlots = Event.prototype.getDatesBetween(fromDate, toDate);
 	var getOpenSlots = Event.prototype.getOpenSlots(fullSlots, recurringOpen, openInterList);

@@ -4,15 +4,15 @@ var assert = require('assert');
 
 describe('Array', function() {
 
-  it('isBetween should return true', function() {
+	it('isBetween should return true', function() {
 		var fromDate = new Date(2016,6,4,10,00); // July 4th 10:00
 		var toDate = new Date(2016,6,10,10,00); // July 10th 10:00
 		var date = {
 			startDate: new Date(2016, 6, 8, 11, 30), // July 8th 11:30
 			endDate: new Date(2016, 6, 8, 12, 30), // July 8th 12:30
 		}
-    assert.equal(Event.prototype.isBetween(date, fromDate, toDate), true);
-  });
+		assert.equal(Event.prototype.isBetween(date, fromDate, toDate), true);
+	});
 
 	it('getDatesBetween should return 5 dates', function(){
 		var startDate = new Date(2019, 3, 24, 10, 00); // April 24th 10:00;
@@ -22,12 +22,12 @@ describe('Array', function() {
 
 	it('getOpenSlots', function(){
 		var fullSlots = [ new Date('2016-07-04'),
-     									new Date('2016-07-05'),
-     									new Date('2016-07-06'),
-     									new Date('2016-07-07'),
-     									new Date('2016-07-08'),
-     									new Date('2016-07-09'),
-     									new Date('2016-07-10') ];
+		new Date('2016-07-05'),
+		new Date('2016-07-06'),
+		new Date('2016-07-07'),
+		new Date('2016-07-08'),
+		new Date('2016-07-09'),
+		new Date('2016-07-10') ];
 
 		var recurringOpen = {
 			'2': { startDate: new Date('2016-06-21T08:30:00.000Z'), endDate: new Date('2016-06-21T12:00:00.000Z') },
