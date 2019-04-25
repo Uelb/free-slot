@@ -31,6 +31,10 @@ Event.prototype.isBetween = function(date, from, to) {
   return false;
 };
 
+Event.prototype.clear = function() {
+  eventList = [];
+};
+
 Event.prototype.sorted = function(arr) {
     return arr
       .sort(function (a, b) { return a.startDate - b.startDate || a.endDate - b.endDate; })

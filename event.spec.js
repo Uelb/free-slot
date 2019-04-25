@@ -4,6 +4,10 @@ var assert = require('assert');
 
 describe('Array', function() {
 
+  beforeEach(function() {
+    Event.prototype.clear();
+  });
+
   it('isBetween should return true', function() {
 		var fromDate = new Date(2016,6,4,10,00); // July 4th 10:00
 		var toDate = new Date(2016,6,10,10,00); // July 10th 10:00
@@ -124,6 +128,28 @@ describe('Array', function() {
 
 		assert.equal(results[0].startDate.getTime() === expectedResults[0].startDate.getTime(), true)
 		assert.equal(results[0].endDate.getTime() === expectedResults[0].endDate.getTime(), true)
-	})
+	});
+
+	it('failing case 1', function() {
+    var fromDate = new Date('2016-07-05T13:00:00.000Z');
+    var toDate = new Date('2016-07-05T19:00:00.000Z');
+    new Event(true, false, new Date('2016-07-05T12:00:00.000Z'), new Date('2016-07-05T16:00:00.000Z'));
+    var results = Event.prototype.availabilities(fromDate, toDate);
+    assert.deepEqual(results, [{
+      startDate: new Date('2016-07-05T13:00:00.000Z'),
+      endDate: new Date('2016-07-05T16:00:00.000Z')
+    }])
+	});
+
+  it('failing case 2', function() {
+    var fromDate = new Date('2016-07-05T08:00:00.000Z');
+    var toDate = new Date('2016-07-05T19:00:00.000Z');
+    new Event(true, true, new Date('2016-06-27T12:00:00.000Z'), new Date('2016-06-28T16:00:00.000Z'));
+    var results = Event.prototype.availabilities(fromDate, toDate);
+    assert.deepEqual(results, [{
+      startDate: new Date('2016-07-05T12:00:00.000Z'),
+      endDate: new Date('2016-07-05T16:00:00.000Z')
+    }])
+  });
 
 });
